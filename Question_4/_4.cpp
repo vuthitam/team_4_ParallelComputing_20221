@@ -18,36 +18,6 @@ double GetTime() {
  QueryPerformanceCounter (&lpPerfomanceCount);
  return LiToDouble(lpPerfomanceCount)/LiToDouble(lpFrequency);
 }
-void RandomDataInitialization(double* pMatrix, int Size) {
- int i, j; 
- time_t t;
- srand((unsigned) time(&t) );
-//  srand(time());
- for (i=0; i<Size; i++) {
-    for (j=0; j<Size; j++)
-        pMatrix[i*Size+j] = rand()/ double(100);
- }
-}
-void pickNumThreads(int threads)
-{
-    printf("Choose the number of threads: ");
-    scanf("%d", &threads);
-}
-
-void ProcessInitialization (double* &pMatrix, int &Size, int &threads) {
-    // do {
-    // printf("\nEnter size of the initial objects: ");
-    // scanf("%d", &Size);
-    // printf("\nChosen objects size = %d\n", Size);
-    // if (Size <= 0)
-    // printf("\nSize of objects must be greater than 0!\n");
-    // }
-    // while (Size <= 0);
-    // Memory allocation 
-    pMatrix = new double [Size*Size];
-    RandomDataInitialization(pMatrix, Size);
-    //pickNumThreads(threads);
-}
 
 void PrintMatrix (double* result, int RowCount, int ColCount) {
     int i, j; 
@@ -58,6 +28,27 @@ void PrintMatrix (double* result, int RowCount, int ColCount) {
     }
 }
 
+void RandomDataInitialization(double* pMatrix, int Size) {
+    int i, j; 
+    time_t t;
+    srand((unsigned) time(&t) );
+    for (i=0; i<Size; i++) {
+        for (j=0; j<Size; j++)
+            pMatrix[i*Size+j] = rand()/ double(100);
+    }
+    //PrintMatrix(pMatrix, Size, Size);
+}
+void pickNumThreads(int threads)
+{
+    printf("Choose the number of threads: ");
+    scanf("%d", &threads);
+}
+
+void ProcessInitialization (double* &pMatrix, int &Size) {
+    pMatrix = new double [Size*Size];
+    RandomDataInitialization(pMatrix, Size);
+}
+
 double ParallelMinMax(double *pMatrix, int size, int threads)
 {
     double max = -10e4, min = -10e4;
@@ -66,8 +57,6 @@ double ParallelMinMax(double *pMatrix, int size, int threads)
     for (int i = 0; i < size; i++)
     {
         min = pMatrix[i *size + 0];
-
-        //#pragma omp parallel for
         for (int j = 1; j < size; j++)
         {
             if (min > pMatrix[i*size+ j]) 
@@ -79,39 +68,36 @@ double ParallelMinMax(double *pMatrix, int size, int threads)
     return max;
 }
 
-// void ProcessTermination(double* pMatrix) {
-//  delete [] pMatrix;
-// }
-
-void test(int* arrayTestSize, byte *arrayNumThreads, double * result,  int numTest, int numThreads)
+void test(int* arrayTestSize, int *arrayNumThreads, double * &result,  int numTest, int numThreads)
 {
-    double* pMatrix;
     // int size, threads=  8;
     double Start, Finish;
     result = new double[numTest * numThreads];
 
     for(int i = 0; i < numTest; i++)
     {
+        double* pMatrix;
         for (int j = 0; j < numThreads; j++)
         {
             int size = arrayTestSize[i];
             int threads = arrayNumThreads[j];
-            ProcessInitialization(pMatrix, size, threads);
+            ProcessInitialization(pMatrix, size);
             Start = GetTime();
-            double max = ParallelMinMax(pMatrix, size, threads);
+            ParallelMinMax(pMatrix, size, threads);
             Finish = GetTime();
             result[i*numThreads +j] = Finish - Start;
         }
-    }
-    delete [] pMatrix;
+        delete [] pMatrix;
+    } 
 }
 
 int main()
 {
-    int arrayTestSize[5] = { 6000, 7000, 8000, 9000, 10000};
-    byte arrayNumThreads[4] = {1, 4, 6, 8};
+    int arrayTestSize[] = { 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000 };
+    int arrayNumThreads[] = {1, 4, 6, 8};
+    int arrSize = sizeof(arrayTestSize)/4, numThreads = sizeof(arrayNumThreads)/4;
     double * result;
-    test(arrayTestSize, arrayNumThreads, result, 10, 4);
-    PrintMatrix(result, 5, 4);
+    test(arrayTestSize, arrayNumThreads, result, arrSize, numThreads);
+    PrintMatrix(result, arrSize, numThreads);
     delete [] result;
 }
